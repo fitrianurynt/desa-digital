@@ -1,3 +1,5 @@
+import React from "react";
+import Skeleton from "react-loading-skeleton";
 import {
   Container,
   Title,
@@ -6,39 +8,45 @@ import {
   Background,
   Content,
   Icon,
-  Company,
   CompanyContainer,
   Applied,
+  InnovatorName,
 } from "./_cardInnovationStyle";
 
 type CardInnovationProps = {
-  background?: string;
-  logo?: string;
-  name?: string;
-  category?: string;
-  description?: string;
-  year?: string;
-  // companyName?: string
-  // appliedInnovation?: number
+  images?: string[];
+  namaInovasi?: string;
+  kategori?: string;
+  deskripsi?: string;
+  tahunDibuat?: string;
+  innovatorLogo?: string | React.ReactNode;
+  innovatorName?: string | React.ReactNode;
   onClick?: () => void;
 };
 
 function CardInnovation(props: CardInnovationProps) {
-  const { background, logo, name, category, description, year, onClick } =
-    props;
-  console.log(background);
+  const { images, namaInovasi, kategori, deskripsi, tahunDibuat, innovatorLogo, innovatorName, onClick } = props;
+
   return (
     <Container onClick={onClick}>
-      <Background src={background} alt={name} />
+      <Background src={images ? images[0] : undefined} alt={namaInovasi} />
       <Content>
-        <Title>{name}</Title>
-        <Category>{category}</Category>
-        <Description>{description}</Description>
+        <Title>{namaInovasi}</Title>
+        <Category>{kategori}</Category>
+        <Description>{deskripsi}</Description>
         <CompanyContainer>
-          <Icon src={logo} alt={name} />
-          <Company></Company>
+          {typeof innovatorLogo === "string" ? (
+            <Icon src={innovatorLogo} alt={namaInovasi} />
+          ) : (
+            <div>{innovatorLogo}</div>
+          )}
+          {typeof innovatorName === "string" ? (
+            <InnovatorName>{innovatorName}</InnovatorName>
+          ) : (
+            <div>{innovatorName}</div>
+          )}
         </CompanyContainer>
-        <Applied>{year}</Applied>
+        <Applied>Sejak {tahunDibuat}</Applied>
       </Content>
     </Container>
   );

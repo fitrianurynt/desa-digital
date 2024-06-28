@@ -1,92 +1,157 @@
-import React from "react";
-import { paths } from "Consts/path";
-import { useNavigate } from "react-router";
-import { useForm } from "react-hook-form";
-import TextField from "Components/textField";
-import Button from "Components/button";
-import { useMutation } from "react-query";
-import { register as registerEndpoint } from "Services/authServices";
 import {
+  Button,
+  Input,
+  InputGroup,
+  InputRightElement,
+  Text,
+} from "@chakra-ui/react";
+import { paths } from "Consts/path";
+import { User } from "firebase/auth";
+import { addDoc, collection } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import icons
+import { useNavigate } from "react-router";
+import { FIREBASE_ERRORS } from "../../../src/firebase/errors";
+import { auth, firestore } from "../../firebase/clientApp";
+import {
+  Action,
+  ActionContainer,
   Background,
+  CheckboxContainer,
   Container,
-  Title,
   Description,
   Label,
-  ActionContainer,
-  Action,
-  CheckboxContainer,
+  Title,
 } from "./_registerStyle";
 
-const forms = [
-  {
-    label: "Email",
-    type: "email",
-    name: "email",
-  },
-  {
-    label: "Kata sandi",
-    type: "password",
-    name: "password",
-  },
-];
 
-function Register() {
-  const navigate = useNavigate();
-  const form = useForm();
-  const { handleSubmit, register, reset } = form;
+const Register: React.FC = () => {
+  const [regisForm, setRegisForm] = useState({
+    email: "",
+    password: "",
+    role: "",
+  });
+  const [error, setError] = useState("");
+  const [createUserWithEmailAndPassword, userCred, loading, userError] =
+    useCreateUserWithEmailAndPassword(auth);
 
-  const { mutateAsync } = useMutation(registerEndpoint);
-
-  const onRegister = async (data: any) => {
-    try {
-      await mutateAsync(data);
-      reset();
-      navigate(paths.LOGIN_PAGE);
-    } catch (error) {
-      console.log(error);
-    }
+  const [show, setShow] = useState(false);
+  const onShowPassword = () => setShow(!show);
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (error) setError("");
+    if (!regisForm.email.includes("@")) return setError("Email tidak valid");
+    if (regisForm.email === "" || regisForm.password === "")
+      return setError("Email dan kata sandi harus diisi");
+    if (regisForm.password.length < 6)
+      return setError("Kata sandi minimal 6 karakter");
+    createUserWithEmailAndPassword(regisForm.email, regisForm.password);
   };
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRegisForm((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
+  };
+  const navigate = useNavigate();
+
+
+  const createUserDocument = async (user: User) => {
+    const userData = {
+      id: user.uid,
+      email: user.email,
+      role: regisForm.role,
+    };
+    await addDoc(
+      collection(firestore, "users"),
+      JSON.parse(JSON.stringify(userData))
+    );
+  };
+
+  useEffect(() => {
+    if (userCred) {
+      createUserDocument(userCred.user);
+      navigate(paths.LOGIN_PAGE);
+    }
+  }, [userCred, navigate]);
 
   return (
     <Background>
       <Container>
         <Title>Halo!</Title>
-        <Description>Silakan melakukan registrasi akun</Description>
+        <Description>Silahkan melakukan registrasi akun</Description>
 
-        <form onSubmit={handleSubmit(onRegister)}>
-          {forms?.map(({ label, type, name }, idx) => (
-            <React.Fragment key={idx}>
-              <Label mt={12}>{label}</Label>
-              <TextField
-                mt={4}
-                placeholder={label}
-                type={type}
-                name={name}
-                form={form}
-              />
-            </React.Fragment>
-          ))}
+        <form onSubmit={onSubmit}>
+          <Text fontSize="10pt" mt="12px">
+            Email
+          </Text>
+          <Input
+            name="email"
+            type="email"
+            onChange={onChange}
+            required
+            placeholder="Email"
+            mt="4px"
+          />
+          <Text fontSize="10pt" mt="12px">
+            Password
+          </Text>
 
+          <InputGroup mt="4px" alignItems="center">
+            <Input
+              name="password"
+              type={show ? "text" : "password"}
+              onChange={onChange}
+              required
+              placeholder="Password"
+            />
+            <InputRightElement
+              onClick={onShowPassword}
+              cursor="pointer"
+              mt="4px"
+            >
+              {show ? <FaEyeSlash /> : <FaEye />}
+            </InputRightElement>
+          </InputGroup>
           <Label mt={12}>Daftar sebagai:</Label>
           <CheckboxContainer mt={12}>
             <input
+              name="role"
               type="radio"
               value="innovator"
-              {...register("role", { required: true })}
+              onChange={onChange}
+              required
             />
             <Label>Inovator</Label>
           </CheckboxContainer>
 
           <CheckboxContainer mt={12}>
             <input
+              name="role"
               type="radio"
               value="village"
-              {...register("role", { required: true })}
+              onChange={onChange}
+              required
             />
             <Label>Perangkat desa</Label>
           </CheckboxContainer>
+          {(error || userError) && (
+            <Text textAlign="center" color="red" fontSize="10pt">
+              {error ||
+                FIREBASE_ERRORS[
+                  userError?.message as keyof typeof FIREBASE_ERRORS
+                ]}
+            </Text>
+          )}
 
-          <Button size="m" fullWidth mt={12} type="submit">
+          <Button
+            mt={8}
+            type="submit"
+            alignItems="center"
+            width="100%"
+            isLoading={loading}
+          >
             Registrasi
           </Button>
         </form>
@@ -98,6 +163,6 @@ function Register() {
       </Container>
     </Background>
   );
-}
+};
 
 export default Register;

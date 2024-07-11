@@ -1,13 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { paths } from "Consts/path";
-import Button from "Components/button";
+// import Button from "Components/button";
+import { Button, Input, InputGroup, InputRightElement } from "@chakra-ui/react";
 import { useForm } from "react-hook-form";
 import TextField from "Components/textField";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "react-query";
-import { login } from "Services/authServices";
-import { toast } from "react-toastify";
-import useAuthLS from "Hooks/useAuthLS";
 import {
   Action,
   Background,
@@ -17,52 +14,49 @@ import {
   ActionContainer,
   Title,
 } from "./_loginStyle";
+import {
+  useAuthState,
+  useSignInWithEmailAndPassword,
+} from "react-firebase-hooks/auth";
+import { auth } from "../../firebase/clientApp";
+import { Text } from "@chakra-ui/react";
+import { FIREBASE_ERRORS } from "../../../src/firebase/errors";
+import { FaEyeSlash, FaEye } from "react-icons/fa";
+import { CheckboxContainer } from "../register/_registerStyle";
 
-const forms = [
-  {
-    label: "Email",
-    type: "email",
-    name: "email",
-  },
-  {
-    label: "Kata sandi",
-    type: "password",
-    name: "password",
-  },
-];
+const Login: React.FC = () => {
+  const [loginForm, setLoginForm] = useState({
+    email: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
+  const [signInWithEmailAndPassword, user, loading, userError] =
+    useSignInWithEmailAndPassword(auth);
 
-function Login() {
+  const [show, setShow] = useState(false);
+  const onShowPassword = () => setShow(!show);
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (error) setError("");
+    if (!loginForm.email.includes("@")) return setError("Email tidak valid");
+    if (loginForm.password.length < 6)
+      return setError("Kata sandi minimal 6 karakter");
+    signInWithEmailAndPassword(loginForm.email, loginForm.password);
+  };
+  const onChange = ({ target }: { target: HTMLInputElement }) => {
+    setLoginForm((prev) => ({ ...prev, [target.name]: target.value }));
+    if (error) setError("");
+  };
+  const [userAuth, loadingAuth, errorAuth] = useAuthState(auth);
+
   const navigate = useNavigate();
   const form = useForm();
-  const { handleSubmit } = form;
-
-  const { mutateAsync } = useMutation(login);
-
-  const { setAuth } = useAuthLS();
-
-  const onLogin = async (data: any) => {
-    try {
-      const response = await mutateAsync(data);
-
-      if (response?.length === 0) {
-        //cek email regist
-        setAuth({});
-        toast("Email atau password salah", { type: "error" });
-        return;
-      }
-
-      const user = response?.[0];
-      const auth = {
-        id: user?.id,
-        email: user?.email,
-        role: user?.role,
-      };
-      setAuth(auth);
+  useEffect(() => {
+    if (user) {
       navigate(paths.LANDING_PAGE);
-    } catch (error) {
-      console.log(error);
     }
-  };
+    console.log("userAuth", user);
+  }, [user, navigate]);
 
   return (
     <Background>
@@ -70,21 +64,54 @@ function Login() {
         <Title>Halo!</Title>
         <Description>Silakan masukkan akun</Description>
 
-        <form onSubmit={handleSubmit(onLogin)}>
-          {forms?.map(({ label, type, name }, idx) => (
-            <React.Fragment key={idx}>
-              <Label mt={12}>{label}</Label>
-              <TextField
-                mt={4}
-                placeholder={label}
-                type={type}
-                name={name}
-                form={form}
-              />
-            </React.Fragment>
-          ))}
+        <form onSubmit={onSubmit}>
+          <Text fontSize="10pt" mt="12px">
+            Email
+          </Text>
+          <Input
+            name="email"
+            type="email"
+            onChange={onChange}
+            required
+            placeholder="Email"
+            mt="4px"
+          />
+          <Text fontSize="10pt" mt="12px">
+            Password
+          </Text>
 
-          <Button size="m" fullWidth mt={12} type="submit">
+          <InputGroup mt="4px" alignItems="center">
+            <Input
+              name="password"
+              type={show ? "text" : "password"}
+              onChange={onChange}
+              required
+              placeholder="Password"
+            />
+            <InputRightElement
+              onClick={onShowPassword}
+              cursor="pointer"
+              mt="4px"
+            >
+              {show ? <FaEyeSlash /> : <FaEye />}
+            </InputRightElement>
+          </InputGroup>
+          {(error || userError) && (
+            <Text textAlign="center" color="red" fontSize="10pt">
+              {error ||
+                FIREBASE_ERRORS[
+                  userError?.message as keyof typeof FIREBASE_ERRORS
+                ]}
+            </Text>
+          )}
+
+          <Button
+            mt={8}
+            type="submit"
+            alignItems="center"
+            width="100%"
+            isLoading={loading}
+          >
             Masuk
           </Button>
         </form>
@@ -98,6 +125,6 @@ function Login() {
       </Container>
     </Background>
   );
-}
+};
 
 export default Login;

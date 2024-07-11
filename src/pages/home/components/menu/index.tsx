@@ -11,10 +11,37 @@ function Menu() {
   const navigate = useNavigate();
   const { data, isLoading, isFetched } = useQuery("menu", getCategories);
 
-  const [menu, setMenu] = useState<any>([]);
+  const predefinedCategories = [
+    {
+      icon: "./src/assets/icons/smart-agri.svg",
+      title: "Pertanian Cerdas",
+    },
+    {
+      icon: "./src/assets/icons/agri-food.svg",
+      title: "Pemasaran Agri-Food dan E-Commerce",
+    },
+    {
+      icon: "./src/assets/icons/e-government.svg",
+      title: "E-Government",
+    },
+    {
+      icon: "./src/assets/icons/information-system.svg",
+      title: "Sistem Informasi",
+    },
+    {
+      icon: "./src/assets/icons/local-infrastructure.svg",
+      title: "Infrastruktur Lokal",
+    },
+    {
+      icon: "./src/assets/icons/menu-all.svg",
+      title: "Lihat Semua",
+    },
+  ];
+
+  const [menu, setMenu] = useState<any>(predefinedCategories);
 
   const onClick = (category: string) => {
-    if (category === "Semua") {
+    if (category === "Lihat Semua") {
       navigate(paths.INNOVATION_PAGE);
       return;
     }
@@ -25,11 +52,12 @@ function Menu() {
   };
 
   useEffect(() => {
-    if (isFetched) {
-      const temp = [...data?.slice(0, 5), data[data?.length - 1]];
-      setMenu(temp);
+    if (isFetched && data) {
+      //const temp = [...data?.slice(0, 5), data[data?.length - 1]];
+      //setMenu(temp);
+      setMenu(predefinedCategories);
     }
-  }, [isFetched]);
+  }, [isFetched, data]);
 
   return (
     <Container>
